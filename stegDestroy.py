@@ -6,11 +6,16 @@ from os.path import splitext
 def process_and_save(image_path, output_path):
 
     image = Image.open(image_path).convert('YCbCr')
+
     image_array = np.array(image, dtype=np.float64)
     height, width, _ = image_array.shape
     
-    for c in range(1,3): # Only process channels (Cb, Cr)
+    # Loop settings:
+    #       (1,3) - process only the chrominance channels
+    #       (0,3) - process every channel
+    for c in range(1,3):
         
+        # TODO: fix the nested loop so that it can process the remaining 7 bits too
         for y in range(0, height - 7, 8):
             for x in range(0, width - 7, 8):
 
@@ -21,10 +26,10 @@ def process_and_save(image_path, output_path):
                     
                 dct_block = dct(dct(block.T, norm='ortho').T, norm='ortho')
                     
-                # Zero out lower right triangle
+                # Zero out lower right triangle with set size
                 for i in range(8):
                     for j in range(8):
-                        if i + j >= 1:
+                        if i + j >= 10:
                             dct_block[i, j] = 0
                     
                 # Apply inverse DCT
@@ -39,12 +44,13 @@ def process_and_save(image_path, output_path):
     # Convert back to uint8 and save
     output_image = Image.fromarray(np.clip(image_array, 0, 255).astype(np.uint8), mode='YCbCr')
     output_image = output_image.convert('RGB')
-    output_image.save(output_path)
+
+    output_image.save(output_path, subsampling=0) 
+
     print(f"Image saved to {output_path}.")
 
 def main():
     image_path = input("Enter the path to the JPEG image: ")
-
     name, ext = splitext(image_path)
     output_path = f"{name}_mod{ext}"
 
